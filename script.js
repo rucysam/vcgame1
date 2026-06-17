@@ -9,12 +9,9 @@ const startButton = document.querySelector('#startButton');
 const restartButton = document.querySelector('#restartButton');
 
 const TARGET_SCORE = 15;
-const GROUND_HEIGHT = 58;
 const PLAYER_START_BOTTOM = 58;
 const JUMP_POWER = 15;
 const GRAVITY = 0.8;
-
-targetScoreText.textContent = TARGET_SCORE;
 
 let score = 0;
 let playerBottom = PLAYER_START_BOTTOM;
@@ -25,6 +22,67 @@ let obstacleX = -50;
 let obstacleSpeed = 6;
 let animationId = null;
 let hasScoredCurrentObstacle = false;
+let audioContext = null;
+let jumpEffectTimeout = null;
+
+targetScoreText.textContent = TARGET_SCORE;
+
+function getAudioContext() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContext) {
+    return null;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
+
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+
+  return audioContext;
+}
+
+function playJumpSound() {
+  const context = getAudioContext();
+
+  if (!context) {
+    return;
+  }
+
+  const oscillator = context.createOscillator();
+  const gainNode = context.createGain();
+  const startTime = context.currentTime;
+  const endTime = startTime + 0.14;
+
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(420, startTime);
+  oscillator.frequency.exponentialRampToValueAtTime(850, endTime);
+
+  gainNode.gain.setValueAtTime(0.0001, startTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.16, startTime + 0.02);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, endTime);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(context.destination);
+
+  oscillator.start(startTime);
+  oscillator.stop(endTime);
+}
+
+function playJumpVisualEffect() {
+  player.classList.add('jump-effect');
+
+  if (jumpEffectTimeout) {
+    clearTimeout(jumpEffectTimeout);
+  }
+
+  jumpEffectTimeout = setTimeout(() => {
+    player.classList.remove('jump-effect');
+  }, 90);
+}
 
 function resetGame() {
   score = 0;
@@ -39,6 +97,7 @@ function resetGame() {
   scoreText.textContent = score;
   statusText.textContent = '대기 중';
   player.style.bottom = `${playerBottom}px`;
+  player.classList.remove('jump-effect');
   obstacle.style.right = `${obstacleX}px`;
 
   showMessage('점프 타이밍 게임', '시작 버튼을 눌러 게임을 시작하세요.');
@@ -52,6 +111,7 @@ function resetGame() {
 function startGame() {
   if (isGameRunning) return;
 
+  getAudioContext();
   isGameRunning = true;
   statusText.textContent = '진행 중';
   hideMessage();
@@ -63,6 +123,8 @@ function jump() {
 
   isJumping = true;
   jumpVelocity = JUMP_POWER;
+  playJumpSound();
+  playJumpVisualEffect();
 }
 
 function updatePlayer() {
