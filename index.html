@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>점프 타이밍 게임</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-wrap">
+    <header class="game-header">
+      <h1>점프 타이밍 게임</h1>
+      <p>스페이스바 또는 화면 클릭으로 장애물을 피하세요!</p>
+    </header>
+
+    <section class="info-panel">
+      <div>점수: <span id="score">0</span></div>
+      <div>목표: <span id="targetScore">15</span></div>
+      <div>상태: <span id="gameStatus">대기 중</span></div>
+    </section>
+
+    <main id="gameArea" class="game-area">
+      <div class="cloud cloud-one"></div>
+      <div class="cloud cloud-two"></div>
+      <div id="player" class="player"></div>
+      <div id="obstacle" class="obstacle"></div>
+      <div class="ground"></div>
+      <div id="message" class="message">
+        <strong>점프 타이밍 게임</strong>
+        <span>시작 버튼을 눌러 게임을 시작하세요.</span>
+      </div>
+    </main>
+
+    <div class="button-row">
+      <button id="startButton" type="button">게임 시작</button>
+      <button id="restartButton" type="button">다시 시작</button>
+    </div>
+
+    <footer class="guide">
+      <p>조작: 스페이스바 / 마우스 클릭 / 모바일 터치</p>
+      <p>승리 조건: 장애물을 피해서 점수 15점 달성</p>
+      <p>패배 조건: 장애물과 충돌</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

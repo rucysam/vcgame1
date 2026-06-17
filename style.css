@@ -1,0 +1,232 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #f9d5e5, #d6f5ff);
+  color: #333;
+}
+
+.game-wrap {
+  width: min(92vw, 760px);
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.game-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.game-header p {
+  margin: 0 0 18px;
+  color: #666;
+}
+
+.info-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: #fff5fb;
+  font-weight: 700;
+}
+
+.game-area {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+  border: 4px solid #333;
+  border-radius: 18px;
+  background: linear-gradient(#88d8ff 0%, #d8f4ff 70%, #8ee084 70%, #8ee084 100%);
+}
+
+.ground {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 58px;
+  background: repeating-linear-gradient(
+    90deg,
+    #54b948 0,
+    #54b948 28px,
+    #69cf5b 28px,
+    #69cf5b 56px
+  );
+}
+
+.player {
+  position: absolute;
+  left: 80px;
+  bottom: 58px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ff5c8a;
+  border: 3px solid #333;
+  transition: bottom 0.08s linear;
+  z-index: 3;
+}
+
+.player::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 27px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.obstacle {
+  position: absolute;
+  right: -50px;
+  bottom: 58px;
+  width: 34px;
+  height: 48px;
+  border-radius: 8px 8px 4px 4px;
+  background: #6a4cff;
+  border: 3px solid #333;
+  z-index: 2;
+}
+
+.cloud {
+  position: absolute;
+  width: 76px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.cloud::before {
+  width: 34px;
+  height: 34px;
+  top: -17px;
+  left: 12px;
+}
+
+.cloud::after {
+  width: 42px;
+  height: 42px;
+  top: -24px;
+  right: 8px;
+}
+
+.cloud-one {
+  top: 54px;
+  left: 80px;
+}
+
+.cloud-two {
+  top: 92px;
+  right: 96px;
+  transform: scale(0.75);
+}
+
+.message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 18px;
+  z-index: 5;
+}
+
+.message strong {
+  font-size: 28px;
+}
+
+.message.hide {
+  display: none;
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  background: #333;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  background: #555;
+}
+
+#startButton {
+  background: #ff5c8a;
+}
+
+#restartButton {
+  background: #6a4cff;
+}
+
+.guide {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #555;
+}
+
+.guide p {
+  margin: 4px 0;
+}
+
+@media (max-width: 560px) {
+  .game-wrap {
+    padding: 16px;
+  }
+
+  .game-header h1 {
+    font-size: 24px;
+  }
+
+  .info-panel {
+    flex-direction: column;
+  }
+
+  .game-area {
+    height: 260px;
+  }
+
+  .player {
+    left: 48px;
+  }
+}
