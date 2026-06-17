@@ -24,6 +24,7 @@ let animationId = null;
 let hasScoredCurrentObstacle = false;
 let audioContext = null;
 let jumpEffectTimeout = null;
+let hasPlayedEndSound = false;
 
 targetScoreText.textContent = TARGET_SCORE;
 
@@ -43,6 +44,32 @@ function getAudioContext() {
   }
 
   return audioContext;
+}
+
+function playTone(frequency, startTimeOffset, duration, volume, type = 'sine') {
+  const context = getAudioContext();
+
+  if (!context) {
+    return;
+  }
+
+  const oscillator = context.createOscillator();
+  const gainNode = context.createGain();
+  const startTime = context.currentTime + startTimeOffset;
+  const endTime = startTime + duration;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, startTime);
+
+  gainNode.gain.setValueAtTime(0.0001, startTime);
+  gainNode.gain.exponentialRampToValueAtTime(volume, startTime + 0.02);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, endTime);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(context.destination);
+
+  oscillator.start(startTime);
+  oscillator.stop(endTime);
 }
 
 function playJumpSound() {
@@ -72,6 +99,23 @@ function playJumpSound() {
   oscillator.stop(endTime);
 }
 
+function playWinSound() {
+  if (hasPlayedEndSound) return;
+
+  hasPlayedEndSound = true;
+  playTone(523.25, 0, 0.12, 0.14);
+  playTone(659.25, 0.12, 0.12, 0.14);
+  playTone(783.99, 0.24, 0.22, 0.16);
+}
+
+function playLoseSound() {
+  if (hasPlayedEndSound) return;
+
+  hasPlayedEndSound = true;
+  playTone(220, 0, 0.16, 0.15, 'triangle');
+  playTone(164.81, 0.16, 0.28, 0.15, 'triangle');
+}
+
 function playJumpVisualEffect() {
   player.classList.add('jump-effect');
 
@@ -93,6 +137,7 @@ function resetGame() {
   obstacleX = -50;
   obstacleSpeed = 6;
   hasScoredCurrentObstacle = false;
+  hasPlayedEndSound = false;
 
   scoreText.textContent = score;
   statusText.textContent = '대기 중';
@@ -183,9 +228,11 @@ function endGame(isWin) {
   animationId = null;
 
   if (isWin) {
+    playWinSound();
     statusText.textContent = '승리!';
     showMessage('승리!', `목표 점수 ${TARGET_SCORE}점을 달성했습니다!`);
   } else {
+    playLoseSound();
     statusText.textContent = '패배!';
     showMessage('패배!', '장애물에 부딪혔습니다. 다시 도전해보세요!');
   }
