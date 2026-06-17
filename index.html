@@ -14,12 +14,19 @@
     </header>
 
     <section class="info-panel">
+      <div>단계: <span id="level">1</span> / 3</div>
       <div>점수: <span id="score">0</span></div>
       <div>목표: <span id="targetScore">15</span></div>
       <div>상태: <span id="gameStatus">대기 중</span></div>
     </section>
 
-    <main id="gameArea" class="game-area">
+    <section class="level-panel">
+      <div class="level-card active" id="levelCard1">1단계<br><span>기본 속도</span></div>
+      <div class="level-card" id="levelCard2">2단계<br><span>속도 증가</span></div>
+      <div class="level-card" id="levelCard3">3단계<br><span>최고 난이도</span></div>
+    </section>
+
+    <main id="gameArea" class="game-area level-one">
       <div class="cloud cloud-one"></div>
       <div class="cloud cloud-two"></div>
       <div id="player" class="player"></div>
@@ -47,7 +54,8 @@
     <footer class="guide">
       <p>조작: 스페이스바 / 마우스 클릭 / 모바일 터치</p>
       <p>효과음: 점프, 승리, 패배 시 사운드 재생</p>
-      <p>승리 조건: 장애물을 피해서 점수 15점 달성</p>
+      <p>난이도: 1단계 → 2단계 → 3단계로 갈수록 장애물이 더 빠르고 까다로워집니다.</p>
+      <p>승리 조건: 3단계까지 통과해서 총 15점 달성</p>
       <p>패배 조건: 장애물과 충돌</p>
       <p>랭킹: 게임 종료 후 닉네임을 입력하면 최근 기록 10개가 저장됩니다.</p>
     </footer>

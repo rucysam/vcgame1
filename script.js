@@ -1,6 +1,7 @@
 const gameArea = document.querySelector('#gameArea');
 const player = document.querySelector('#player');
 const obstacle = document.querySelector('#obstacle');
+const levelText = document.querySelector('#level');
 const scoreText = document.querySelector('#score');
 const targetScoreText = document.querySelector('#targetScore');
 const statusText = document.querySelector('#gameStatus');
@@ -10,7 +11,34 @@ const restartButton = document.querySelector('#restartButton');
 const rankingList = document.querySelector('#rankingList');
 const clearRankingButton = document.querySelector('#clearRankingButton');
 
-const TARGET_SCORE = 15;
+const LEVELS = [
+  {
+    level: 1,
+    targetScore: 5,
+    obstacleSpeed: 6,
+    obstacleWidth: 34,
+    obstacleHeight: 48,
+    label: '1단계',
+  },
+  {
+    level: 2,
+    targetScore: 10,
+    obstacleSpeed: 7.7,
+    obstacleWidth: 38,
+    obstacleHeight: 56,
+    label: '2단계',
+  },
+  {
+    level: 3,
+    targetScore: 15,
+    obstacleSpeed: 9.4,
+    obstacleWidth: 44,
+    obstacleHeight: 64,
+    label: '3단계',
+  },
+];
+
+const FINAL_TARGET_SCORE = LEVELS[LEVELS.length - 1].targetScore;
 const PLAYER_START_BOTTOM = 58;
 const JUMP_POWER = 15;
 const GRAVITY = 0.8;
@@ -18,20 +46,22 @@ const RANKING_STORAGE_KEY = 'jumpTimingGameRanking';
 const MAX_RANKING_COUNT = 10;
 
 let score = 0;
+let currentLevelIndex = 0;
 let playerBottom = PLAYER_START_BOTTOM;
 let jumpVelocity = 0;
 let isJumping = false;
 let isGameRunning = false;
 let obstacleX = -50;
-let obstacleSpeed = 6;
+let obstacleSpeed = LEVELS[0].obstacleSpeed;
 let animationId = null;
 let hasScoredCurrentObstacle = false;
 let audioContext = null;
 let jumpEffectTimeout = null;
 let hasPlayedEndSound = false;
 let lastGameResult = null;
+let isLevelChanging = false;
 
-targetScoreText.textContent = TARGET_SCORE;
+targetScoreText.textContent = FINAL_TARGET_SCORE;
 
 function getAudioContext() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -102,6 +132,12 @@ function playJumpSound() {
 
   oscillator.start(startTime);
   oscillator.stop(endTime);
+}
+
+function playLevelUpSound() {
+  playTone(440, 0, 0.08, 0.12, 'square');
+  playTone(660, 0.08, 0.08, 0.12, 'square');
+  playTone(880, 0.16, 0.12, 0.14, 'square');
 }
 
 function playWinSound() {
@@ -178,11 +214,12 @@ function renderRanking() {
   rankingList.innerHTML = records
     .map((record) => {
       const resultClass = record.result === '승리' ? 'result-win' : 'result-lose';
+      const levelLabel = record.level ? `${record.level}단계` : '기록 없음';
 
       return `
         <li>
           <span>${record.nickname}</span>
-          <span class="${resultClass}">${record.result} / ${record.score}점</span>
+          <span class="${resultClass}">${record.result} / ${record.score}점 / ${levelLabel}</span>
           <span class="play-date">${formatDate(record.createdAt)}</span>
         </li>
       `;
@@ -201,6 +238,7 @@ function addRankingRecord(nickname) {
   const newRecord = {
     nickname: trimmedNickname,
     score: lastGameResult.score,
+    level: lastGameResult.level,
     result: lastGameResult.isWin ? '승리' : '패배',
     createdAt: new Date().toISOString(),
   };
@@ -226,23 +264,50 @@ function handleNicknameSubmit(event) {
   addRankingRecord(nicknameInput.value);
 }
 
+function getCurrentLevel() {
+  return LEVELS[currentLevelIndex];
+}
+
+function applyLevelSettings() {
+  const currentLevel = getCurrentLevel();
+
+  obstacleSpeed = currentLevel.obstacleSpeed;
+  obstacle.style.width = `${currentLevel.obstacleWidth}px`;
+  obstacle.style.height = `${currentLevel.obstacleHeight}px`;
+
+  levelText.textContent = currentLevel.level;
+
+  gameArea.classList.remove('level-one', 'level-two', 'level-three');
+  gameArea.classList.add(`level-${['one', 'two', 'three'][currentLevelIndex]}`);
+
+  document.querySelectorAll('.level-card').forEach((card, index) => {
+    card.classList.toggle('active', index === currentLevelIndex);
+  });
+}
+
+function resetObstacle() {
+  obstacleX = -50;
+  hasScoredCurrentObstacle = false;
+  obstacle.style.right = `${obstacleX}px`;
+}
+
 function resetGame() {
   score = 0;
+  currentLevelIndex = 0;
   playerBottom = PLAYER_START_BOTTOM;
   jumpVelocity = 0;
   isJumping = false;
   isGameRunning = false;
-  obstacleX = -50;
-  obstacleSpeed = 6;
-  hasScoredCurrentObstacle = false;
+  resetObstacle();
   hasPlayedEndSound = false;
   lastGameResult = null;
+  isLevelChanging = false;
 
+  applyLevelSettings();
   scoreText.textContent = score;
   statusText.textContent = '대기 중';
   player.style.bottom = `${playerBottom}px`;
   player.classList.remove('jump-effect');
-  obstacle.style.right = `${obstacleX}px`;
 
   showMessage('점프 타이밍 게임', '시작 버튼을 눌러 게임을 시작하세요.');
 
@@ -258,13 +323,13 @@ function startGame() {
   getAudioContext();
   isGameRunning = true;
   lastGameResult = null;
-  statusText.textContent = '진행 중';
+  statusText.textContent = `${getCurrentLevel().label} 진행 중`;
   hideMessage();
   animationId = requestAnimationFrame(gameLoop);
 }
 
 function jump() {
-  if (!isGameRunning || isJumping) return;
+  if (!isGameRunning || isJumping || isLevelChanging) return;
 
   isJumping = true;
   jumpVelocity = JUMP_POWER;
@@ -288,6 +353,8 @@ function updatePlayer() {
 }
 
 function updateObstacle() {
+  if (isLevelChanging) return;
+
   obstacleX += obstacleSpeed;
   obstacle.style.right = `${obstacleX}px`;
 
@@ -298,15 +365,10 @@ function updateObstacle() {
     score += 1;
     scoreText.textContent = score;
     hasScoredCurrentObstacle = true;
-
-    if (score % 5 === 0) {
-      obstacleSpeed += 0.8;
-    }
   }
 
   if (obstacleX > gameWidth + 60) {
-    obstacleX = -50;
-    hasScoredCurrentObstacle = false;
+    resetObstacle();
   }
 }
 
@@ -322,23 +384,55 @@ function isColliding() {
   );
 }
 
+function shouldLevelUp() {
+  const currentLevel = getCurrentLevel();
+
+  return score >= currentLevel.targetScore && currentLevelIndex < LEVELS.length - 1;
+}
+
+function levelUp() {
+  isLevelChanging = true;
+  isGameRunning = false;
+  currentLevelIndex += 1;
+  applyLevelSettings();
+  resetObstacle();
+  playLevelUpSound();
+  statusText.textContent = `${getCurrentLevel().label} 준비`;
+  showMessage(
+    `${getCurrentLevel().label} 시작!`,
+    '장애물이 더 빠르고 커졌습니다.<br>잠시 후 자동으로 계속 진행됩니다.'
+  );
+
+  setTimeout(() => {
+    if (!isLevelChanging) return;
+
+    isLevelChanging = false;
+    isGameRunning = true;
+    statusText.textContent = `${getCurrentLevel().label} 진행 중`;
+    hideMessage();
+    animationId = requestAnimationFrame(gameLoop);
+  }, 1100);
+}
+
 function endGame(isWin) {
   isGameRunning = false;
+  isLevelChanging = false;
   cancelAnimationFrame(animationId);
   animationId = null;
   lastGameResult = {
     isWin,
     score,
+    level: getCurrentLevel().level,
   };
 
   if (isWin) {
     playWinSound();
-    statusText.textContent = '승리!';
-    showNicknameForm('승리!', `목표 점수 ${TARGET_SCORE}점을 달성했습니다!`);
+    statusText.textContent = '최종 승리!';
+    showNicknameForm('최종 승리!', `3단계까지 통과해서 총 ${FINAL_TARGET_SCORE}점을 달성했습니다!`);
   } else {
     playLoseSound();
     statusText.textContent = '패배!';
-    showNicknameForm('패배!', '장애물에 부딪혔습니다. 닉네임을 남겨 플레이 로그를 저장하세요!');
+    showNicknameForm('패배!', `${getCurrentLevel().label}에서 장애물에 부딪혔습니다. 닉네임을 남겨 플레이 로그를 저장하세요!`);
   }
 }
 
@@ -351,8 +445,15 @@ function gameLoop() {
     return;
   }
 
-  if (score >= TARGET_SCORE) {
+  if (score >= FINAL_TARGET_SCORE) {
     endGame(true);
+    return;
+  }
+
+  if (shouldLevelUp()) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+    levelUp();
     return;
   }
 
@@ -418,7 +519,7 @@ document.addEventListener('keydown', (event) => {
 
     event.preventDefault();
 
-    if (!isGameRunning && statusText.textContent !== '진행 중') {
+    if (!isGameRunning && !isLevelChanging && statusText.textContent !== '진행 중') {
       startGame();
       return;
     }
@@ -434,7 +535,7 @@ gameArea.addEventListener('click', (event) => {
     return;
   }
 
-  if (!isGameRunning) {
+  if (!isGameRunning && !isLevelChanging) {
     startGame();
     return;
   }

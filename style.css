@@ -33,14 +33,43 @@ body {
 }
 
 .info-panel {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 16px;
   padding: 12px 16px;
   border-radius: 16px;
   background: #fff5fb;
   font-weight: 700;
+}
+
+.level-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.level-card {
+  padding: 10px;
+  border: 3px solid #333;
+  border-radius: 14px;
+  background: #ffffff;
+  font-weight: 800;
+  opacity: 0.55;
+}
+
+.level-card span {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.level-card.active {
+  background: #ffe6f0;
+  opacity: 1;
+  transform: translateY(-2px);
 }
 
 .game-area {
@@ -52,6 +81,14 @@ body {
   border-radius: 18px;
   background: linear-gradient(#88d8ff 0%, #d8f4ff 70%, #8ee084 70%, #8ee084 100%);
   cursor: pointer;
+}
+
+.game-area.level-two {
+  background: linear-gradient(#7fd1ff 0%, #d0efff 70%, #7bd66e 70%, #7bd66e 100%);
+}
+
+.game-area.level-three {
+  background: linear-gradient(#6ac4ff 0%, #c7eaff 70%, #68c75d 70%, #68c75d 100%);
 }
 
 .ground {
@@ -317,8 +354,9 @@ button:hover {
     font-size: 24px;
   }
 
-  .info-panel {
-    flex-direction: column;
+  .info-panel,
+  .level-panel {
+    grid-template-columns: 1fr;
   }
 
   .game-area {
