@@ -7,11 +7,15 @@ const statusText = document.querySelector('#gameStatus');
 const message = document.querySelector('#message');
 const startButton = document.querySelector('#startButton');
 const restartButton = document.querySelector('#restartButton');
+const rankingList = document.querySelector('#rankingList');
+const clearRankingButton = document.querySelector('#clearRankingButton');
 
 const TARGET_SCORE = 15;
 const PLAYER_START_BOTTOM = 58;
 const JUMP_POWER = 15;
 const GRAVITY = 0.8;
+const RANKING_STORAGE_KEY = 'jumpTimingGameRanking';
+const MAX_RANKING_COUNT = 10;
 
 let score = 0;
 let playerBottom = PLAYER_START_BOTTOM;
@@ -25,6 +29,7 @@ let hasScoredCurrentObstacle = false;
 let audioContext = null;
 let jumpEffectTimeout = null;
 let hasPlayedEndSound = false;
+let lastGameResult = null;
 
 targetScoreText.textContent = TARGET_SCORE;
 
@@ -128,6 +133,99 @@ function playJumpVisualEffect() {
   }, 90);
 }
 
+function getRankingRecords() {
+  const savedRanking = localStorage.getItem(RANKING_STORAGE_KEY);
+
+  if (!savedRanking) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(savedRanking);
+  } catch (error) {
+    localStorage.removeItem(RANKING_STORAGE_KEY);
+    return [];
+  }
+}
+
+function saveRankingRecords(records) {
+  localStorage.setItem(RANKING_STORAGE_KEY, JSON.stringify(records));
+}
+
+function formatDate(dateText) {
+  const date = new Date(dateText);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+
+  return `${month}/${day} ${hour}:${minute}`;
+}
+
+function renderRanking() {
+  const records = getRankingRecords();
+
+  if (records.length === 0) {
+    rankingList.innerHTML = '<p class="ranking-empty">아직 플레이 로그가 없습니다.</p>';
+    return;
+  }
+
+  rankingList.innerHTML = records
+    .map((record) => {
+      const resultClass = record.result === '승리' ? 'result-win' : 'result-lose';
+
+      return `
+        <li>
+          <span>${record.nickname}</span>
+          <span class="${resultClass}">${record.result} / ${record.score}점</span>
+          <span class="play-date">${formatDate(record.createdAt)}</span>
+        </li>
+      `;
+    })
+    .join('');
+}
+
+function addRankingRecord(nickname) {
+  const trimmedNickname = nickname.trim().slice(0, 12);
+
+  if (!trimmedNickname || !lastGameResult) {
+    return;
+  }
+
+  const records = getRankingRecords();
+  const newRecord = {
+    nickname: trimmedNickname,
+    score: lastGameResult.score,
+    result: lastGameResult.isWin ? '승리' : '패배',
+    createdAt: new Date().toISOString(),
+  };
+
+  records.unshift(newRecord);
+  saveRankingRecords(records.slice(0, MAX_RANKING_COUNT));
+  renderRanking();
+  showMessage(
+    '기록 저장 완료!',
+    `${trimmedNickname}님의 ${newRecord.result} 기록이 저장되었습니다.<br>다시 시작 버튼으로 재도전하세요!`
+  );
+}
+
+function handleNicknameSubmit(event) {
+  event.preventDefault();
+
+  const nicknameInput = document.querySelector('#nicknameInput');
+
+  if (!nicknameInput) {
+    return;
+  }
+
+  addRankingRecord(nicknameInput.value);
+}
+
 function resetGame() {
   score = 0;
   playerBottom = PLAYER_START_BOTTOM;
@@ -138,6 +236,7 @@ function resetGame() {
   obstacleSpeed = 6;
   hasScoredCurrentObstacle = false;
   hasPlayedEndSound = false;
+  lastGameResult = null;
 
   scoreText.textContent = score;
   statusText.textContent = '대기 중';
@@ -158,6 +257,7 @@ function startGame() {
 
   getAudioContext();
   isGameRunning = true;
+  lastGameResult = null;
   statusText.textContent = '진행 중';
   hideMessage();
   animationId = requestAnimationFrame(gameLoop);
@@ -226,15 +326,19 @@ function endGame(isWin) {
   isGameRunning = false;
   cancelAnimationFrame(animationId);
   animationId = null;
+  lastGameResult = {
+    isWin,
+    score,
+  };
 
   if (isWin) {
     playWinSound();
     statusText.textContent = '승리!';
-    showMessage('승리!', `목표 점수 ${TARGET_SCORE}점을 달성했습니다!`);
+    showNicknameForm('승리!', `목표 점수 ${TARGET_SCORE}점을 달성했습니다!`);
   } else {
     playLoseSound();
     statusText.textContent = '패배!';
-    showMessage('패배!', '장애물에 부딪혔습니다. 다시 도전해보세요!');
+    showNicknameForm('패배!', '장애물에 부딪혔습니다. 닉네임을 남겨 플레이 로그를 저장하세요!');
   }
 }
 
@@ -263,6 +367,24 @@ function showMessage(title, text) {
   `;
 }
 
+function showNicknameForm(title, text) {
+  message.classList.remove('hide');
+  message.innerHTML = `
+    <strong>${title}</strong>
+    <span>${text}</span>
+    <form id="nicknameForm" class="nickname-form">
+      <input id="nicknameInput" type="text" maxlength="12" placeholder="닉네임 입력" autocomplete="off" required />
+      <button type="submit">기록 저장</button>
+    </form>
+  `;
+
+  const nicknameForm = document.querySelector('#nicknameForm');
+  const nicknameInput = document.querySelector('#nicknameInput');
+
+  nicknameForm.addEventListener('submit', handleNicknameSubmit);
+  nicknameInput.focus();
+}
+
 function hideMessage() {
   message.classList.add('hide');
 }
@@ -274,8 +396,26 @@ restartButton.addEventListener('click', () => {
   startGame();
 });
 
+clearRankingButton.addEventListener('click', () => {
+  const shouldClear = confirm('플레이 로그를 모두 삭제할까요?');
+
+  if (!shouldClear) {
+    return;
+  }
+
+  localStorage.removeItem(RANKING_STORAGE_KEY);
+  renderRanking();
+});
+
 document.addEventListener('keydown', (event) => {
   if (event.code === 'Space') {
+    const activeElement = document.activeElement;
+    const isTypingNickname = activeElement && activeElement.id === 'nicknameInput';
+
+    if (isTypingNickname) {
+      return;
+    }
+
     event.preventDefault();
 
     if (!isGameRunning && statusText.textContent !== '진행 중') {
@@ -287,7 +427,13 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-gameArea.addEventListener('click', () => {
+gameArea.addEventListener('click', (event) => {
+  const clickedFormElement = event.target.closest('#nicknameForm');
+
+  if (clickedFormElement) {
+    return;
+  }
+
   if (!isGameRunning) {
     startGame();
     return;
@@ -297,3 +443,4 @@ gameArea.addEventListener('click', () => {
 });
 
 resetGame();
+renderRanking();
